@@ -154,11 +154,13 @@ try:
         pre_generate_cmd, \
         is_containerized, \
         exec_command, \
+        build_base_cmd_shell, \
         exit_module
 except ImportError:
     from module_utils.ceph_common import generate_cmd, \
         pre_generate_cmd, \
         is_containerized, \
+        build_base_cmd_shell, \
         exec_command, \
         exit_module
 
@@ -168,7 +170,8 @@ import json
 import os
 
 
-def check_pool_exist(cluster,
+def check_pool_exist(module: "AnsibleModule",
+                     cluster,
                      name,
                      user,
                      user_key,
@@ -178,41 +181,26 @@ def check_pool_exist(cluster,
     Check if a given pool exists
     '''
 
-    args = ['stats', name, '-f', output_format]
 
-    cmd = generate_cmd(sub_cmd=['osd', 'pool'],
-                       args=args,
-                       cluster=cluster,
-                       user=user,
-                       user_key=user_key,
-                       container_image=container_image)
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['osd','pool','stats',name,'-f',output_format])
 
     return cmd
 
 
-def generate_get_config_cmd(param,
+def generate_get_config_cmd(module: "AnsibleModule",
+                            param,
                             cluster,
                             user,
                             user_key,
                             container_image=None):
-    _cmd = pre_generate_cmd('ceph', container_image=container_image)
-    args = [
-        '-n',
-        user,
-        '-k',
-        user_key,
-        '--cluster',
-        cluster,
-        'config',
-        'get',
-        'mon.*',
-        param
-    ]
-    cmd = _cmd + args
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['ceph','config','get','mon.*',param])
     return cmd
 
 
-def get_application_pool(cluster,
+def get_application_pool(module: "AnsibleModule",
+                         cluster,
                          name,
                          user,
                          user_key,
@@ -222,19 +210,13 @@ def get_application_pool(cluster,
     Get application type enabled on a given pool
     '''
 
-    args = ['application', 'get', name, '-f', output_format]
-
-    cmd = generate_cmd(sub_cmd=['osd', 'pool'],
-                       args=args,
-                       cluster=cluster,
-                       user=user,
-                       user_key=user_key,
-                       container_image=container_image)
-
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['ceph','osd','pool','application','get',name,'-f',output_format])
     return cmd
 
 
-def enable_application_pool(cluster,
+def enable_application_pool(module: "AnsibleModule",
+                            cluster,
                             name,
                             application,
                             user,
@@ -244,19 +226,13 @@ def enable_application_pool(cluster,
     Enable application on a given pool
     '''
 
-    args = ['application', 'enable', name, application]
-
-    cmd = generate_cmd(sub_cmd=['osd', 'pool'],
-                       args=args,
-                       cluster=cluster,
-                       user=user,
-                       user_key=user_key,
-                       container_image=container_image)
-
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['ceph','osd','pool','application','enable',name,application])
     return cmd
 
 
-def init_rbd_pool(cluster,
+def init_rbd_pool(module: "AnsibleModule",
+                  cluster,
                   name,
                   user,
                   user_key,
@@ -265,20 +241,13 @@ def init_rbd_pool(cluster,
     Initialize a rbd pool
     '''
 
-    args = [name]
-
-    cmd = generate_cmd(cmd='rbd',
-                       sub_cmd=['pool', 'init'],
-                       args=args,
-                       cluster=cluster,
-                       user=user,
-                       user_key=user_key,
-                       container_image=container_image)
-
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['rbd','pool','init',name])
     return cmd
 
 
-def disable_application_pool(cluster,
+def disable_application_pool(module: "AnsibleModule",
+                             cluster,
                              name,
                              application,
                              user,
@@ -288,16 +257,8 @@ def disable_application_pool(cluster,
     Disable application on a given pool
     '''
 
-    args = ['application', 'disable', name,
-            application, '--yes-i-really-mean-it']
-
-    cmd = generate_cmd(sub_cmd=['osd', 'pool'],
-                       args=args,
-                       cluster=cluster,
-                       user=user,
-                       user_key=user_key,
-                       container_image=container_image)
-
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['ceph','osd','pool','application','disable',name,application,'--yes-i-really-mean-it'])
     return cmd
 
 
@@ -312,14 +273,16 @@ def get_pool_details(module,
     Get details about a given pool
     '''
 
-    args = ['ls', 'detail', '-f', output_format]
+    # args = ['ls', 'detail', '-f', output_format]
 
-    cmd = generate_cmd(sub_cmd=['osd', 'pool'],
-                       args=args,
-                       cluster=cluster,
-                       user=user,
-                       user_key=user_key,
-                       container_image=container_image)
+    # cmd = generate_cmd(sub_cmd=['osd', 'pool'],
+    #                    args=args,
+    #                    cluster=cluster,
+    #                    user=user,
+    #                    user_key=user_key,
+    #                    container_image=container_image)
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(["ceph","osd","pool","ls","detail","-f",output_format])
 
     rc, cmd, out, err = exec_command(module, cmd)
 
@@ -327,7 +290,8 @@ def get_pool_details(module,
         out = [p for p in json.loads(out.strip()) if p['pool_name'] == name][0]
 
     _rc, _cmd, application_pool, _err = exec_command(module,
-                                                     get_application_pool(cluster,    # noqa: E501
+                                                     get_application_pool(module,
+                                                                        cluster,    # noqa: E501
                                                                           name,    # noqa: E501
                                                                           user,    # noqa: E501
                                                                           user_key,    # noqa: E501
@@ -386,7 +350,8 @@ def compare_pool_config(user_pool_config, running_pool_details):
     return delta
 
 
-def list_pools(cluster,
+def list_pools(module: "AnsibleModule",
+               cluster,
                user,
                user_key,
                details,
@@ -395,25 +360,19 @@ def list_pools(cluster,
     '''
     List existing pools
     '''
-
-    args = ['ls']
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['ls'])
 
     if details:
-        args.append('detail')
+        cmd.extend(['detail'])
 
-    args.extend(['-f', output_format])
-
-    cmd = generate_cmd(sub_cmd=['osd', 'pool'],
-                       args=args,
-                       cluster=cluster,
-                       user=user,
-                       user_key=user_key,
-                       container_image=container_image)
+    cmd.extend(['-f',output_format])
 
     return cmd
 
 
-def create_pool(cluster,
+def create_pool(module: "AnsibleModule",
+                cluster,
                 user,
                 user_key,
                 user_pool_config,
@@ -457,30 +416,21 @@ def create_pool(cluster,
                      '--autoscale-mode',
                      user_pool_config['pg_autoscale_mode']['value']])
 
-    cmd = generate_cmd(sub_cmd=['osd', 'pool'],
-                       args=args,
-                       cluster=cluster,
-                       user=user,
-                       user_key=user_key,
-                       container_image=container_image)
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['osd','pool'] + args)
 
     return cmd
 
 
-def remove_pool(cluster, name, user, user_key, container_image=None):
+def remove_pool(module:"AnsibleModule",cluster, name, user, user_key, container_image=None):
     '''
     Remove a pool
     '''
 
     args = ['rm', name, name, '--yes-i-really-really-mean-it']
 
-    cmd = generate_cmd(sub_cmd=['osd', 'pool'],
-                       args=args,
-                       cluster=cluster,
-                       user=user,
-                       user_key=user_key,
-                       container_image=container_image)
-
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(['osd','pool'] + args)
     return cmd
 
 
@@ -499,23 +449,18 @@ def update_pool(module, cluster, name,
                     delta[key]['cli_set_opt'],
                     delta[key]['value']]
 
-            cmd = generate_cmd(sub_cmd=['osd', 'pool'],
-                               args=args,
-                               cluster=cluster,
-                               user=user,
-                               user_key=user_key,
-                               container_image=container_image)
-
+            cmd = build_base_cmd_shell(module)
+            cmd.extend(['osd','pool'] + args)
             rc, cmd, out, err = exec_command(module, cmd)
             if rc != 0:
                 return rc, cmd, out, err
 
         else:
-            rc, cmd, out, err = exec_command(module, disable_application_pool(cluster, name, delta['application']['old_application'], user, user_key, container_image=container_image))  # noqa: E501
+            rc, cmd, out, err = exec_command(module, disable_application_pool(module,cluster, name, delta['application']['old_application'], user, user_key, container_image=container_image))  # noqa: E501
             if rc != 0:
                 return rc, cmd, out, err
 
-            rc, cmd, out, err = exec_command(module, enable_application_pool(cluster, name, delta['application']['new_application'], user, user_key, container_image=container_image))  # noqa: E501
+            rc, cmd, out, err = exec_command(module, enable_application_pool(module,cluster, name, delta['application']['new_application'], user, user_key, container_image=container_image))  # noqa: E501
             if rc != 0:
                 return rc, cmd, out, err
 
@@ -616,7 +561,8 @@ def run_module():
 
     if state == "present":
         rc, cmd, out, err = exec_command(module,
-                                         check_pool_exist(cluster,
+                                         check_pool_exist(module,
+                                                          cluster,
                                                           name,
                                                           user,
                                                           user_key,
@@ -652,14 +598,16 @@ def run_module():
                                                     container_image=container_image)  # noqa: E501
         elif not module.check_mode:
             rc, cmd, out, err = exec_command(module,
-                                             create_pool(cluster,
+                                             create_pool(module,
+                                                         cluster,
                                                          user,
                                                          user_key,
                                                          user_pool_config=user_pool_config,  # noqa: E501
                                                          container_image=container_image))  # noqa: E501
             if user_pool_config['application']['value']:
                 rc, cmd, out, err = exec_command(module,
-                                           enable_application_pool(cluster,
+                                           enable_application_pool(module,
+                                                                   cluster,
                                                                    name,
                                                                    user_pool_config['application']['value'],  # noqa: E501
                                                                    user,
@@ -667,7 +615,8 @@ def run_module():
                                                                    container_image=container_image))  # noqa: E501
                 if rc == 0 and user_pool_config['application']['value'] == 'rbd':  # noqa: E501
                     rc, cmd, out, err = exec_command(module,
-                                                     init_rbd_pool(cluster,
+                                                     init_rbd_pool(module,
+                                                                   cluster,
                                                                    user_pool_config['pool_name']['value'],  # noqa: E501
                                                                    user,
                                                                    user_key,
@@ -688,14 +637,16 @@ def run_module():
 
     elif state == "absent":
         rc, cmd, out, err = exec_command(module,
-                                         check_pool_exist(cluster,
+                                         check_pool_exist(module,
+                                                          cluster,
                                                           name, user,
                                                           user_key,
                                                           container_image=container_image))  # noqa: E501
         changed = rc == 0
         if changed and not module.check_mode:
             rc, cmd, out, err = exec_command(module,
-                                             remove_pool(cluster,
+                                             remove_pool(module,
+                                                         cluster,
                                                          name,
                                                          user,
                                                          user_key,
