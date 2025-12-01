@@ -199,9 +199,9 @@ EXAMPLES = '''
 RETURN = '''#  '''
 
 try:
-    from ansible_collections.ceph.automation.plugins.module_utils.ceph_common import generate_cmd, is_containerized, container_exec, fatal  # type: ignore
+    from ansible_collections.ceph.automation.plugins.module_utils.ceph_common import generate_cmd,build_base_cmd_shell,  is_containerized, container_exec, fatal  # type: ignore
 except ImportError:
-    from module_utils.ceph_common import generate_cmd, is_containerized, container_exec, fatal
+    from module_utils.ceph_common import generate_cmd,build_base_cmd_shell,  is_containerized, container_exec, fatal
 try:
     from ansible_collections.ceph.automation.plugins.module_utils.ceph_key_common import exec_commands
 except ImportError:
@@ -264,18 +264,13 @@ def generate_caps(_type, caps):
     return caps_cli
 
 
-def generate_ceph_authtool_cmd(cluster, name, secret, caps, dest, container_image=None):  # noqa: E501
+def generate_ceph_authtool_cmd(module: "AnsibleModule",cluster, name, secret, caps, dest, container_image=None):  # noqa: E501
     '''
     Generate 'ceph-authtool' command line to execute
     '''
 
-    if container_image:
-        binary = 'ceph-authtool'
-        cmd = container_exec(
-            binary, container_image)
-    else:
-        binary = ['ceph-authtool']
-        cmd = binary
+    cmd = build_base_cmd_shell(module)
+    cmd.extend(["ceph-authtool"])
 
     base_cmd = [
         '--create-keyring',
@@ -321,17 +316,13 @@ def create_key(module,
         cluster, name, secret, caps, dest, container_image))
 
     if import_key or user != 'client.admin':
-        cmd_list.append(generate_cmd(sub_cmd=['auth'],
-                                     args=args,
-                                     cluster=cluster,
-                                     user=user,
-                                     user_key=user_key,
-                                     container_image=container_image))
+        base_cmd = build_base_cmd_shell(module)
+        cmd_list.append(base_cmd.extend(['auth'] + args))
 
     return cmd_list
 
 
-def delete_key(cluster, user, user_key, name, container_image=None):
+def delete_key(module: "AnsibleModule",cluster, user, user_key, name, container_image=None):
     '''
     Delete a CephX key
     '''
@@ -342,18 +333,13 @@ def delete_key(cluster, user, user_key, name, container_image=None):
         'del',
         name,
     ]
-
-    cmd_list.append(generate_cmd(sub_cmd=['auth'],
-                                 args=args,
-                                 cluster=cluster,
-                                 user=user,
-                                 user_key=user_key,
-                                 container_image=container_image))
+    base_cmd = build_base_cmd_shell(module)
+    cmd_list.append(base_cmd.extend(['auth'] + args))
 
     return cmd_list
 
 
-def get_key(cluster, user, user_key, name, dest, container_image=None):
+def get_key(module: "AnsibleModule",cluster, user, user_key, name, dest, container_image=None):
     '''
     Get a CephX key (write on the filesystem)
     '''
@@ -366,18 +352,15 @@ def get_key(cluster, user, user_key, name, dest, container_image=None):
         '-o',
         dest,
     ]
+    base_cmd = build_base_cmd_shell(module)
+    cmd_list.append(base_cmd.extend(['auth'] + args))
 
-    cmd_list.append(generate_cmd(sub_cmd=['auth'],
-                                 args=args,
-                                 cluster=cluster,
-                                 user=user,
-                                 user_key=user_key,
-                                 container_image=container_image))
+
 
     return cmd_list
 
 
-def info_key(cluster, name, user, user_key, output_format, container_image=None):  # noqa: E501
+def info_key(module: "AnsibleModule",cluster, name, user, user_key, output_format, container_image=None):  # noqa: E501
     '''
     Get information about a CephX key
     '''
@@ -391,17 +374,15 @@ def info_key(cluster, name, user, user_key, output_format, container_image=None)
         output_format,
     ]
 
-    cmd_list.append(generate_cmd(sub_cmd=['auth'],
-                                 args=args,
-                                 cluster=cluster,
-                                 user=user,
-                                 user_key=user_key,
-                                 container_image=container_image))
+    base_cmd = build_base_cmd_shell(module)
+    cmd_list.append(base_cmd.extend(['auth'] + args))
+
+
 
     return cmd_list
 
 
-def list_keys(cluster, user, user_key, container_image=None):
+def list_keys(module: "AnsibleModule",cluster, user, user_key, container_image=None):
     '''
     List all CephX keys
     '''
@@ -414,12 +395,10 @@ def list_keys(cluster, user, user_key, container_image=None):
         'json',
     ]
 
-    cmd_list.append(generate_cmd(sub_cmd=['auth'],
-                                 args=args,
-                                 cluster=cluster,
-                                 user=user,
-                                 user_key=user_key,
-                                 container_image=container_image))
+    base_cmd = build_base_cmd_shell(module)
+    cmd_list.append(base_cmd.extend(['auth'] + args))
+
+
 
     return cmd_list
 
