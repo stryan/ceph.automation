@@ -245,7 +245,7 @@ def generate_secret():
     return secret
 
 
-def generate_caps(_type, caps):
+def generate_caps(_type, caps) -> list:
     '''
     Generate CephX capabilities list
     '''
@@ -264,7 +264,7 @@ def generate_caps(_type, caps):
     return caps_cli
 
 
-def generate_ceph_authtool_cmd(module: "AnsibleModule",cluster, name, secret, caps, dest, container_image=None):  # noqa: E501
+def generate_ceph_authtool_cmd(module: "AnsibleModule",cluster, name, secret, caps, dest, container_image=None) ->list:  # noqa: E501
     '''
     Generate 'ceph-authtool' command line to execute
     '''
@@ -287,7 +287,7 @@ def generate_ceph_authtool_cmd(module: "AnsibleModule",cluster, name, secret, ca
     return cmd
 
 
-def create_key(module,
+def create_key(module: "AnsibleModule",
                cluster,
                user,
                user_key,
