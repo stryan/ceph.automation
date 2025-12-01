@@ -183,7 +183,7 @@ def check_pool_exist(module: "AnsibleModule",
 
 
     cmd = build_base_cmd_shell(module)
-    cmd.extend(['osd','pool','stats',name,'-f',output_format])
+    cmd.extend(['ceph','osd','pool','stats',name,'-f',output_format])
 
     return cmd
 
@@ -417,7 +417,7 @@ def create_pool(module: "AnsibleModule",
                      user_pool_config['pg_autoscale_mode']['value']])
 
     cmd = build_base_cmd_shell(module)
-    cmd.extend(['osd','pool'] + args)
+    cmd.extend(['ceph','osd','pool'] + args)
 
     return cmd
 
@@ -430,7 +430,7 @@ def remove_pool(module:"AnsibleModule",cluster, name, user, user_key, container_
     args = ['rm', name, name, '--yes-i-really-really-mean-it']
 
     cmd = build_base_cmd_shell(module)
-    cmd.extend(['osd','pool'] + args)
+    cmd.extend(['ceph','osd','pool'] + args)
     return cmd
 
 
@@ -450,7 +450,7 @@ def update_pool(module, cluster, name,
                     delta[key]['value']]
 
             cmd = build_base_cmd_shell(module)
-            cmd.extend(['osd','pool'] + args)
+            cmd.extend(['ceph','osd','pool'] + args)
             rc, cmd, out, err = exec_command(module, cmd)
             if rc != 0:
                 return rc, cmd, out, err
