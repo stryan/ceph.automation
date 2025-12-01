@@ -552,7 +552,7 @@ def run_module():
         if import_key:
             _info_key = []
             rc, cmd, out, err = exec_commands(
-                module, info_key(cluster, name, user, user_key_path, output_format, container_image))  # noqa: E501
+                module, info_key(module,cluster, name, user, user_key_path, output_format, container_image))  # noqa: E501
             key_exist = rc
             if not caps and key_exist != 0:
                 fatal("Capabilities must be provided when state is 'present'", module)  # noqa: E501
@@ -568,7 +568,7 @@ def run_module():
                 _caps = _info_key[0]['caps']
                 if secret == _secret and caps == _caps:
                     if not os.path.isfile(file_path):
-                        rc, cmd, out, err = exec_commands(module, get_key(cluster, user, user_key_path, name, file_path, container_image))  # noqa: E501
+                        rc, cmd, out, err = exec_commands(module, get_key(module,cluster, user, user_key_path, name, file_path, container_image))  # noqa: E501
                         result["rc"] = rc
                         if rc != 0:
                             result["stdout"] = "Couldn't fetch the key {0} at {1}.".format(name, file_path)  # noqa: E501
@@ -596,10 +596,10 @@ def run_module():
 
     elif state == "absent":
         rc, cmd, out, err = exec_commands(
-            module, info_key(cluster, name, user, user_key_path, output_format, container_image))  # noqa: E501
+            module, info_key(module,cluster, name, user, user_key_path, output_format, container_image))  # noqa: E501
         if rc == 0:
             rc, cmd, out, err = exec_commands(
-                module, delete_key(cluster, user, user_key_path, name, container_image))  # noqa: E501
+                module, delete_key(module,cluster, user, user_key_path, name, container_image))  # noqa: E501
             changed = True
         else:
             rc = 0
@@ -610,7 +610,7 @@ def run_module():
         keyring_filename = cluster + "-" + hostname + "/keyring"
         user_key_path = os.path.join("/var/lib/ceph/mon/", keyring_filename)
         rc, cmd, out, err = exec_commands(
-            module, list_keys(cluster, user, user_key_path, container_image))
+            module, list_keys(module,cluster, user, user_key_path, container_image))
         if rc != 0:
             result["stdout"] = "failed to retrieve ceph keys"
             result["sdterr"] = err
@@ -634,7 +634,7 @@ def run_module():
                 key_path,
             ]
 
-            info_cmd = info_key(cluster, entity, user,
+            info_cmd = info_key(module,cluster, entity, user,
                                 user_key_path, output_format, container_image)
             # we use info_cmd[0] because info_cmd is an array made of an array
             info_cmd[0].extend(extra_args)
