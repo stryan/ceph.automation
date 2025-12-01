@@ -604,6 +604,10 @@ def run_module():
                                                          user_key,
                                                          user_pool_config=user_pool_config,  # noqa: E501
                                                          container_image=container_image))  # noqa: E501
+            if rc != 0:
+                exit_module(module=module, out=out, rc=rc, cmd=cmd, err=err, startd=startd,
+                    changed=changed)
+           
             if user_pool_config['application']['value']:
                 rc, cmd, out, err = exec_command(module,
                                            enable_application_pool(module,
